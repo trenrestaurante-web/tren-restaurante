@@ -87,9 +87,9 @@ export default function LoadingScreen() {
 
       <div className="carga-txt">
         <div className="carga-logo">TREN <span>MAYA</span></div>
-        <div className="carga-sub">Tren Restaurante · Servicio de alimentos a bordo</div>
+        <div className="carga-sub">Sabores que acompañan tu camino</div>
         <div className="carga-barra"><i /></div>
-        <div className="carga-skip">Toca para entrar</div>
+        <div className="carga-skip">Preparando tu experiencia — toca para entrar</div>
       </div>
     </div>
   );

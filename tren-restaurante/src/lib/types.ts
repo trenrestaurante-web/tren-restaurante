@@ -25,6 +25,7 @@ export interface MenuItem {
   alcohol: boolean;
   activo: boolean;
   orden: number;
+  imagen?: string | null;
 }
 
 export interface CartLine { menu_item_id: string; cantidad: number; }

@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       if (!m) return null;
       const cantidad = Math.max(1, Number(l.cantidad) || 1);
       return {
-        menu_item_id: m.id, nombre: m.nombre, grupo: m.grupo, incluido: m.incluido,
+        menu_item_id: m.id, nombre: l.nombre_override || m.nombre, grupo: m.grupo, incluido: m.incluido,
         cantidad, precio_unitario: m.precio, subtotal: m.precio * cantidad,
       };
     }).filter(Boolean) as any[];
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       comprobante: {
         folio, nombre: datos.nombre, asiento: (datos.asiento || '').toUpperCase(),
-        corridaCorta, sentido: corrida.sentido, items,
+        corridaCorta, sentido: corrida.sentido, items, total,
       },
     });
   } catch (e: any) {

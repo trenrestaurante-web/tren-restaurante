@@ -8,8 +8,6 @@ export default async function Home() {
   const [corridas, menu] = await Promise.all([getCorridas(), getMenu()]);
   return (
     <>
-      <div className="franja" />
-      <span className="greca" />
       <LoadingScreen />
       <OrderFlow corridas={corridas} menu={menu} />
     </>
