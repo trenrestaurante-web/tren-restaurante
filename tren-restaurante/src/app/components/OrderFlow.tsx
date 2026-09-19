@@ -114,17 +114,30 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // tope por categoría = número de personas (individual = 1)
+  const topeCategoria = modoCompra === 'grupo' ? numPasajeros : 1;
+
   function cambiarCant(id: string, delta: number) {
     const m = item(id); if (!m) return;
     setCart(prev => {
       const actual = prev[id] || 0;
       const nuevo = Math.max(0, actual + delta);
       const next = { ...prev };
+      // el plato principal es de selección única (uno solo), no aplica el tope numérico
       if (m.principal && delta > 0 && actual === 0) {
         for (const k of Object.keys(next)) {
           const mk = item(k);
           if (mk?.principal && mk.servicio === m.servicio) delete next[k];
         }
+      }
+      // límite por categoría: no exceder el nº de personas al sumar toda la categoría
+      if (delta > 0 && !m.principal && !m.incluido) {
+        const totalCat = Object.entries(next).reduce((s, [k, q]) => {
+          const mk = item(k);
+          return s + (mk && !mk.incluido && !mk.principal && mk.grupo === m.grupo && mk.servicio === m.servicio ? q : 0);
+        }, 0);
+        // totalCat ya incluye 'actual'; si sumar uno más pasa el tope, no dejar
+        if (totalCat + 1 > topeCategoria) return prev;
       }
       if (nuevo === 0) delete next[id]; else next[id] = nuevo;
       return next;
@@ -425,6 +438,21 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
               return grupos.map(g => {
                 const items = menuServicio.filter(m => m.grupo === g.nombre);
                 if (!items.length) return null;
+                // Acompañamientos: solo aviso de que van incluidos (no seleccionable)
+                if (g.nombre === 'Acompañamientos') {
+                  return (
+                    <div key={g.nombre}>
+                      {catSel === CAT_TODO && (<div className="grupo-titulo"><h3>{g.nombre}</h3><span className="barra" /></div>)}
+                      <div className="acomp-aviso">
+                        <div className="aa-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg></div>
+                        <div>
+                          <div className="aa-t">Acompañamientos incluidos, sin costo</div>
+                          <div className="aa-d">Tu pedido incluye: {items.map(m => m.nombre).join(' · ')}.</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div key={g.nombre}>
                     {catSel === CAT_TODO && (

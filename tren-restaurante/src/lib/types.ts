@@ -43,7 +43,7 @@ export function corridaAbierta(c: Corrida): boolean {
 export const GRUPOS: Record<Servicio, { nombre: string; hint: string }[]> = {
   manana: [
     { nombre: 'Desayuno', hint: 'Elige tu plato principal — solo uno, en la cantidad que quieras' },
-    { nombre: 'Acompañamientos', hint: 'Elige tu acompañamiento incluido (sin costo)' },
+    { nombre: 'Acompañamientos', hint: '' },
     { nombre: 'Bebidas', hint: '' },
     { nombre: 'Menú Infantil', hint: '' },
     { nombre: 'Menú Vegano', hint: '' },
