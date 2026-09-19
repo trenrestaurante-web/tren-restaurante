@@ -407,3 +407,43 @@ footer{border-top:1px solid var(--linea-2);padding:34px 0 40px;margin-top:30px}
   .vagon-card .vg-ic{width:44px;height:44px}
   .vagon-card .vg-nombre{font-size:17px}
 }
+
+/* ===== ¿Para quién compras? (grupo) ===== */
+.grupo-ops{display:flex;flex-direction:column;gap:12px}
+.grupo-op{display:flex;align-items:center;gap:16px;background:var(--selva-2);border:1px solid var(--linea-2);border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:transform .2s,border-color .2s}
+.grupo-op:hover{transform:translateY(-2px);border-color:var(--linea)}
+.grupo-op.sel{border-color:var(--oro);background:linear-gradient(120deg,rgba(198,164,97,.08),var(--selva-2))}
+.grupo-op .go-ic{width:50px;height:50px;border-radius:12px;flex:none;display:grid;place-items:center;background:var(--selva-3);color:var(--oro-claro)}
+.grupo-op.sel .go-ic{background:linear-gradient(135deg,var(--oro-claro),var(--oro));color:var(--pino)}
+.grupo-op .go-t{font-family:var(--display);font-size:19px;font-weight:600}
+.grupo-op .go-d{font-size:12.5px;color:var(--hueso-2);margin-top:2px}
+.num-pax{background:var(--selva-2);border:1px solid var(--linea);border-radius:var(--r);padding:20px;margin-top:16px;text-align:center}
+.num-pax .np-l{font-family:var(--display);font-size:18px;font-weight:600;margin-bottom:14px}
+.np-stepper{display:inline-flex;align-items:center;gap:6px;background:var(--selva-3);border-radius:999px;padding:6px}
+.np-stepper button{width:44px;height:44px;border-radius:50%;border:none;background:transparent;color:var(--oro-claro);font-size:24px;cursor:pointer;display:grid;place-items:center;transition:.15s}
+.np-stepper button:hover{background:rgba(198,164,97,.15)}
+.np-stepper .np-c{font-family:var(--display);font-weight:600;font-size:28px;min-width:44px;text-align:center}
+.num-pax .np-hint{font-family:var(--mono);font-size:11px;color:var(--hueso-2);margin-top:12px}
+
+/* ===== Lista de pasajeros en checkout ===== */
+.pax-lista{display:flex;flex-direction:column;gap:9px}
+.pax-fila{display:flex;align-items:center;gap:9px}
+.pax-fila .pax-n{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--oro-claro);width:30px;flex:none}
+.pax-fila .pax-asiento{flex:1;font-family:var(--body);font-size:14px;padding:11px 13px;border:1px solid var(--linea-2);border-radius:9px;background:var(--selva-0);color:var(--cal)}
+.pax-fila .pax-asiento:focus{outline:none;border-color:var(--oro)}
+.pax-fila .pax-vagon{font-family:var(--body);font-size:13px;padding:11px 10px;border:1px solid var(--linea-2);border-radius:9px;background:var(--selva-0);color:var(--cal);cursor:pointer}
+.pax-fila .pax-vagon:focus{outline:none;border-color:var(--oro)}
+
+/* ===== Facturación (después del pago) ===== */
+.factura-toggle{width:100%;background:rgba(244,238,223,.04);border:1px solid var(--linea);border-radius:var(--r);padding:16px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:var(--cal);font-weight:600;font-size:14px;margin-top:14px;transition:.18s}
+.factura-toggle:hover{border-color:var(--oro)}
+.factura-card{background:var(--selva-2);border:1px solid var(--linea);border-radius:var(--r);padding:22px;margin-top:14px;text-align:left}
+.factura-card h3{font-family:var(--display);font-size:20px;font-weight:600;margin-bottom:4px}
+.factura-card .sub{font-size:12.5px;color:var(--hueso-2);margin-bottom:18px}
+.factura-ok{background:rgba(46,125,104,.12);border:1px solid rgba(46,125,104,.3);border-radius:var(--r);padding:16px 18px;margin-top:14px;color:var(--cal);font-size:13.5px;text-align:center}
+
+@media(max-width:640px){
+  .grupo-op{padding:14px 15px;gap:12px}
+  .grupo-op .go-ic{width:44px;height:44px}
+  .pax-fila .pax-vagon{font-size:12px;padding:11px 6px}
+}

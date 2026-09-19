@@ -1,0 +1,35 @@
+PROYECTO TREN MAYA · RESTAURANTE — contexto para chat nuevo
+============================================================
+Web app de preventa de comida para pasajeros del Tren Maya
+(ruta Teya → Chichén Itzá). YA ESTÁ EN PRODUCCIÓN:
+- Frontend: Next.js 15 (App Router)
+- Base de datos + auth admin: Supabase
+- Pagos: Stripe (modo demo si no hay llaves)
+- Correos: Resend
+- Hosting: Vercel (tren-restaurante-coral.vercel.app)
+- Repo GitHub: trenrestaurante-web/tren-restaurante
+
+QUÉ HACE:
+1. ¿Para quién compras? (solo / grupo, eliges cuántos)
+2. Elige corrida (fecha + horario)
+3. Elige vagón (solo) — 1 Premier, 2/3/4 Turista
+4. Menú por categorías con fotos, precios MXN + USD
+5. Resumen → Pago → Ticket con QR
+6. Grupos: asiento+vagón por pasajero al pagar
+7. Alergias + facturación (guarda datos, no emite)
+8. Panel admin /admin con export a Excel por pasajero
+
+ARCHIVOS CLAVE:
+- src/app/components/OrderFlow.tsx  → todo el flujo de compra
+- src/app/globals.css               → diseño (verde selva + oro + piedra)
+- src/lib/data.ts                   → menú fallback
+- src/app/api/checkout/route.ts     → crea orden / pago
+- src/app/admin/page.tsx            → panel + Excel
+- supabase/*.sql                    → schema y migraciones
+
+PARA CORRER LOCAL:  npm install && npm run dev
+VARIABLES: copiar .env.example a .env.local
+
+SQL PENDIENTE EN SUPABASE (si no se ha corrido):
+- supabase/migracion-grupos.sql  (columnas pasajeros, alergias, facturacion)
+- supabase/add-imagenes.sql      (fotos del menú)

@@ -4,7 +4,7 @@ import type { Corrida, MenuItem } from '@/lib/types';
 import { GRUPOS, corridaAbierta } from '@/lib/types';
 import { convertMXNtoUSD, fmtMXN } from '@/lib/precio';
 
-type Vista = 'hero' | 'corridas' | 'vagon' | 'menu' | 'detalle' | 'resumen' | 'checkout' | 'confirmacion';
+type Vista = 'hero' | 'grupo' | 'corridas' | 'vagon' | 'menu' | 'detalle' | 'resumen' | 'checkout' | 'confirmacion';
 type Cart = Record<string, number>;
 
 // Configuración real del tren Xiinbal (ruta Teya → Chichén Itzá):
@@ -22,7 +22,11 @@ const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 // Opciones/variantes por platillo (no toca la BD; se guarda en el nombre).
 const OPCIONES: Record<string, { label: string; items: string[]; ingredientes?: Record<string, string> }> = {
-  'Chilaquiles': { label: 'Proteína', items: ['Pollo', 'Huevo', 'Sin proteína'] },
+  'Chilaquiles': { label: 'Proteína', items: ['Pollo', 'Sin proteína'] },
+  'Café Latte': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
+  'Café Frío': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
+  'Capuchino': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
+  'Leche con Chocolate': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
   'Baguette': {
     label: 'Escoge tu baguette',
     items: ['Española', 'Italiana', 'Tradicional', 'Premium'],
@@ -57,6 +61,15 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
   const [vista, setVista] = useState<Vista>('hero');
   const [corridaId, setCorridaId] = useState<string | null>(null);
   const [vagon, setVagon] = useState<string | null>(null);
+  const [modoCompra, setModoCompra] = useState<'solo' | 'grupo'>('solo');
+  const [numPasajeros, setNumPasajeros] = useState(2);
+  const [pasajeros, setPasajeros] = useState<{ asiento: string; vagon: string }[]>([]);
+  const [alergias, setAlergias] = useState('');
+  const [tieneAlergias, setTieneAlergias] = useState(false);
+  const [mostrarFactura, setMostrarFactura] = useState(false);
+  const [facturaOk, setFacturaOk] = useState(false);
+  const [factura, setFactura] = useState({ rfc: '', razon: '', cp: '', regimen: '', usocfdi: '', correo: '' });
+  const [factCargando, setFactCargando] = useState(false);
   const [fechaSel, setFechaSel] = useState<string | null>(null);
   const [cart, setCart] = useState<Cart>({});
   const [proteinas, setProteinas] = useState<Record<string, string>>({});
@@ -91,7 +104,8 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
     setCorridaId(id); setCart({}); setProteinas({}); setVagon(null);
     const c = corridas.find(x => x.id === id);
     setCatSel(CAT_TODO);
-    setVista('vagon');
+    // en grupo, los asientos/vagones se ponen al pagar (uno por pasajero)
+    setVista(modoCompra === 'grupo' ? 'menu' : 'vagon');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function elegirVagon(v: string) {
@@ -133,9 +147,21 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
   // abrir detalle (solo principales / con proteína); otros se agregan directo
   function abrirDetalle(id: string) { setDetalleId(id); setVista('detalle'); if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-  const paso = { corridas: 0, vagon: 0, menu: 1, detalle: 1, resumen: 2, checkout: 2 } as Record<string, number>;
+  const paso = { grupo: 0, corridas: 0, vagon: 0, menu: 1, detalle: 1, resumen: 2, checkout: 2 } as Record<string, number>;
 
   const vagonSel = VAGONES.find(v => v.id === vagon) || null;
+
+  // Inicializa la lista de pasajeros (asiento+vagón) según el número elegido
+  function iniciarGrupo(modo: 'solo' | 'grupo', n: number) {
+    setModoCompra(modo);
+    const total = modo === 'solo' ? 1 : Math.max(2, n);
+    setNumPasajeros(total);
+    setPasajeros(Array.from({ length: total }, () => ({ asiento: '', vagon: '1' })));
+    ir('corridas');
+  }
+  function setPasajero(i: number, campo: 'asiento' | 'vagon', val: string) {
+    setPasajeros(prev => prev.map((p, idx) => idx === i ? { ...p, [campo]: val } : p));
+  }
 
   // nombre con opción elegida (proteína o variante de baguette) para la orden
   function nombreConOpcion(m: MenuItem): string {
@@ -145,16 +171,49 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
     return `${m.nombre} (${p})`;
   }
 
+  async function enviarFactura() {
+    if (!factura.rfc.trim() || !factura.razon.trim()) { return; }
+    setFactCargando(true);
+    try {
+      await fetch('/api/factura', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folio: comprobante?.folio, factura }),
+      });
+      setFacturaOk(true); setMostrarFactura(false);
+    } catch { setFacturaOk(true); setMostrarFactura(false); }
+    finally { setFactCargando(false); }
+  }
+
   async function pagar() {
-    if (!datos.nombre.trim() || !datos.asiento.trim()) { setError('Necesitamos tu nombre y asiento.'); return; }
+    if (!datos.nombre.trim()) { setError('Necesitamos el nombre de quien compra.'); return; }
+    let asientoResumen = '';
+    let pasajerosPayload: { asiento: string; vagon: string }[] = [];
+    if (modoCompra === 'solo') {
+      if (!datos.asiento.trim()) { setError('Necesitamos tu asiento.'); return; }
+      asientoResumen = vagonSel ? `${vagonSel.nombre} · ${datos.asiento.trim()}` : datos.asiento.trim();
+      pasajerosPayload = [{ asiento: datos.asiento.trim(), vagon: vagonSel?.id || '' }];
+    } else {
+      // grupo: cada pasajero con asiento; validar completos y sin duplicados
+      const claves = new Set<string>();
+      for (let i = 0; i < pasajeros.length; i++) {
+        const p = pasajeros[i];
+        if (!p.asiento.trim()) { setError(`Falta el asiento del pasajero ${i + 1}.`); return; }
+        const clave = `${p.vagon}-${p.asiento.trim().toUpperCase()}`;
+        if (claves.has(clave)) { setError(`El asiento ${p.asiento} (Vagón ${p.vagon}) está repetido.`); return; }
+        claves.add(clave);
+      }
+      pasajerosPayload = pasajeros.map(p => ({ asiento: p.asiento.trim(), vagon: p.vagon }));
+      asientoResumen = `Grupo de ${pasajeros.length} · ` + pasajeros.map(p => `V${p.vagon}-${p.asiento.trim()}`).join(', ');
+    }
     setError(''); setCargando(true);
-    // El asiento se guarda con el vagón para que cocina sepa dónde entregar.
-    const asientoCompleto = vagonSel ? `${vagonSel.nombre} · ${datos.asiento.trim()}` : datos.asiento.trim();
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          corridaId, datos: { ...datos, asiento: asientoCompleto },
+          corridaId,
+          datos: { ...datos, asiento: asientoResumen },
+          pasajeros: pasajerosPayload,
+          alergias: tieneAlergias ? alergias.trim() : '',
           lineas: Object.entries(cart).map(([menu_item_id, cantidad]) => {
             const m = item(menu_item_id);
             return { menu_item_id, cantidad, nombre_override: m ? nombreConOpcion(m) : undefined };
@@ -205,7 +264,7 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
                 </div>
               </div>
 
-              <button className="btn btn-primario" onClick={() => { setFechaSel(fechas[0] ?? null); ir('corridas'); }}>Ver corridas disponibles <Flecha /></button>
+              <button className="btn btn-primario" onClick={() => { setFechaSel(fechas[0] ?? null); ir('grupo'); }}>Ver corridas disponibles <Flecha /></button>
 
               <div className="hero-datos">
                 <div className="d"><div className="n">3 tiempos</div><div className="l">Desayuno</div></div>
@@ -214,6 +273,42 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
                 <div className="d"><div className="n">100%</div><div className="l">Cocina yucateca</div></div>
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== ¿PARA QUIÉN COMPRAS? (grupo) ===== */}
+      {vista === 'grupo' && (
+        <section className="vista activa">
+          <div className="wrap seccion" style={{ maxWidth: 640 }}>
+            <button className="volver" onClick={() => ir('hero')}><FlechaAtras />Volver al inicio</button>
+            <div className="sec-head"><span className="eyebrow">Antes de empezar</span><h2>¿Para quién compras?</h2><p>Puedes apartar comida solo para ti o para un grupo de pasajeros.</p></div>
+            <div className="grupo-ops">
+              <div className={`grupo-op${modoCompra === 'solo' ? ' sel' : ''}`} onClick={() => setModoCompra('solo')}>
+                <div className="go-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M5 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1" /></svg></div>
+                <div><div className="go-t">Solo para mí</div><div className="go-d">Un pasajero.</div></div>
+              </div>
+              <div className={`grupo-op${modoCompra === 'grupo' ? ' sel' : ''}`} onClick={() => setModoCompra('grupo')}>
+                <div className="go-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2" /><circle cx="17" cy="9" r="2.6" /><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1M15 14h1a4 4 0 0 1 4 4v2" /></svg></div>
+                <div><div className="go-t">Para varias personas</div><div className="go-d">Un pedido para todo el grupo.</div></div>
+              </div>
+            </div>
+
+            {modoCompra === 'grupo' && (
+              <div className="num-pax">
+                <div className="np-l">¿Cuántas personas?</div>
+                <div className="np-stepper">
+                  <button onClick={() => setNumPasajeros(n => Math.max(2, n - 1))}>−</button>
+                  <span className="np-c">{numPasajeros}</span>
+                  <button onClick={() => setNumPasajeros(n => Math.min(15, n + 1))}>+</button>
+                </div>
+                <div className="np-hint">Máximo 15 pasajeros por reserva.</div>
+              </div>
+            )}
+
+            <button className="btn btn-primario" style={{ width: '100%', marginTop: 24 }} onClick={() => iniciarGrupo(modoCompra, numPasajeros)}>
+              Continuar <Flecha />
+            </button>
           </div>
         </section>
       )}
@@ -456,14 +551,50 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
             <div className="checkout">
               <div>
                 <div className="form-card" style={{ marginBottom: 18 }}>
-                  <h3>Datos del pasajero</h3>
+                  <h3>{modoCompra === 'grupo' ? 'Datos de quien reserva' : 'Datos del pasajero'}</h3>
                   <p className="sub">Estos datos aparecen en tu ticket y los verifica el personal a bordo.</p>
-                  <div className="campo"><label>Nombre del pasajero</label><input value={datos.nombre} onChange={e => setDatos({ ...datos, nombre: e.target.value })} placeholder="Ej. Juanito Pérez" /></div>
+                  <div className="campo"><label>Nombre {modoCompra === 'grupo' ? 'de quien reserva' : 'del pasajero'}</label><input value={datos.nombre} onChange={e => setDatos({ ...datos, nombre: e.target.value })} placeholder="Ej. Juanito Pérez" /></div>
                   <div className="campo mitad">
-                    <div><label>Asiento{vagonSel ? ` · ${vagonSel.nombre}` : ''}</label><input value={datos.asiento} onChange={e => setDatos({ ...datos, asiento: e.target.value })} placeholder="Ej. 12B" /><div className="nota">{vagonSel ? <>Vagón y asiento de tu boleto del Tren Maya. <span onClick={() => ir('vagon')} style={{ color: 'var(--oro-claro)', cursor: 'pointer' }}>Cambiar vagón</span></> : 'Lo encuentras en tu boleto del Tren Maya.'}</div></div>
                     <div><label>Teléfono</label><input value={datos.telefono} onChange={e => setDatos({ ...datos, telefono: e.target.value })} placeholder="999 123 4567" /></div>
+                    <div><label>Correo (para tu ticket)</label><input type="email" value={datos.email} onChange={e => setDatos({ ...datos, email: e.target.value })} placeholder="tucorreo@ejemplo.com" /></div>
                   </div>
-                  <div className="campo"><label>Correo (para tu ticket)</label><input type="email" value={datos.email} onChange={e => setDatos({ ...datos, email: e.target.value })} placeholder="tucorreo@ejemplo.com" /></div>
+
+                  {modoCompra === 'solo' ? (
+                    <div className="campo">
+                      <label>Asiento{vagonSel ? ` · ${vagonSel.nombre}` : ''}</label>
+                      <input value={datos.asiento} onChange={e => setDatos({ ...datos, asiento: e.target.value })} placeholder="Ej. 12B" />
+                      <div className="nota">{vagonSel ? <>Vagón y asiento de tu boleto del Tren Maya. <span onClick={() => ir('vagon')} style={{ color: 'var(--oro-claro)', cursor: 'pointer' }}>Cambiar vagón</span></> : 'Lo encuentras en tu boleto del Tren Maya.'}</div>
+                    </div>
+                  ) : (
+                    <div className="campo">
+                      <label>Asientos del grupo · {pasajeros.length} pasajeros</label>
+                      <div className="nota" style={{ marginBottom: 10 }}>Escribe el asiento y vagón de cada pasajero (de sus boletos del Tren Maya).</div>
+                      <div className="pax-lista">
+                        {pasajeros.map((p, i) => (
+                          <div className="pax-fila" key={i}>
+                            <span className="pax-n">P{i + 1}</span>
+                            <input className="pax-asiento" value={p.asiento} onChange={e => setPasajero(i, 'asiento', e.target.value)} placeholder="Asiento (ej. 12B)" />
+                            <select className="pax-vagon" value={p.vagon} onChange={e => setPasajero(i, 'vagon', e.target.value)}>
+                              {VAGONES.map(v => <option key={v.id} value={v.id}>Vagón {v.id}{v.clase === 'Premier' ? ' · Premier' : ''}</option>)}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Alergias */}
+                <div className="form-card" style={{ marginBottom: 18 }}>
+                  <h3>Alergias o restricciones</h3>
+                  <p className="sub">Para que la cocina lo tenga presente al preparar tu pedido.</p>
+                  <div className="pago-metodos" style={{ marginBottom: tieneAlergias ? 14 : 0 }}>
+                    <div className={`metodo${!tieneAlergias ? ' sel' : ''}`} onClick={() => setTieneAlergias(false)}><span className="radio" /><span className="m-nombre">Sin alergias</span></div>
+                    <div className={`metodo${tieneAlergias ? ' sel' : ''}`} onClick={() => setTieneAlergias(true)}><span className="radio" /><span className="m-nombre">Tengo alergias o restricciones</span></div>
+                  </div>
+                  {tieneAlergias && (
+                    <div className="campo"><label>Especifica</label><input value={alergias} onChange={e => setAlergias(e.target.value)} placeholder="Ej. sin gluten, alérgico a nueces…" /></div>
+                  )}
                 </div>
 
                 <div className="form-card">
@@ -519,9 +650,35 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
                 </div>
               </div>
 
+              {/* Facturación (después del pago) */}
+              {facturaOk ? (
+                <div className="factura-ok">✓ Recibimos tus datos de facturación. El personal emitirá tu factura y la enviará a tu correo.</div>
+              ) : mostrarFactura ? (
+                <div className="factura-card">
+                  <h3>Datos de facturación</h3>
+                  <p className="sub">Los guardamos para emitir tu factura. No se emite en este momento.</p>
+                  <div className="campo"><label>RFC</label><input value={factura.rfc} onChange={e => setFactura({ ...factura, rfc: e.target.value.toUpperCase() })} placeholder="XAXX010101000" /></div>
+                  <div className="campo"><label>Razón social / Nombre</label><input value={factura.razon} onChange={e => setFactura({ ...factura, razon: e.target.value })} placeholder="Nombre o empresa" /></div>
+                  <div className="campo mitad">
+                    <div><label>Código postal fiscal</label><input value={factura.cp} onChange={e => setFactura({ ...factura, cp: e.target.value })} placeholder="97000" /></div>
+                    <div><label>Régimen fiscal</label><input value={factura.regimen} onChange={e => setFactura({ ...factura, regimen: e.target.value })} placeholder="Ej. 612" /></div>
+                  </div>
+                  <div className="campo mitad">
+                    <div><label>Uso de CFDI</label><input value={factura.usocfdi} onChange={e => setFactura({ ...factura, usocfdi: e.target.value })} placeholder="Ej. G03" /></div>
+                    <div><label>Correo para factura</label><input type="email" value={factura.correo} onChange={e => setFactura({ ...factura, correo: e.target.value })} placeholder="correo@ejemplo.com" /></div>
+                  </div>
+                  <button className="btn btn-primario" style={{ width: '100%', marginTop: 6 }} onClick={enviarFactura} disabled={factCargando}>{factCargando ? 'Guardando…' : 'Guardar datos de factura'}</button>
+                </div>
+              ) : (
+                <div className="factura-toggle" onClick={() => setMostrarFactura(true)}>
+                  <span>¿Necesitas factura?</span>
+                  <Flecha />
+                </div>
+              )}
+
               <div className="conf-acciones">
                 <button className="btn btn-primario" onClick={() => window.print()}>Guardar ticket</button>
-                <button className="btn btn-fantasma" onClick={() => { setCart({}); setProteinas({}); setCorridaId(null); setComprobante(null); setDatos({ nombre: '', asiento: '', telefono: '', email: '' }); ir('hero'); }}>Hacer otro pedido</button>
+                <button className="btn btn-fantasma" onClick={() => { setCart({}); setProteinas({}); setCorridaId(null); setComprobante(null); setDatos({ nombre: '', asiento: '', telefono: '', email: '' }); setModoCompra('solo'); setNumPasajeros(2); setPasajeros([]); setAlergias(''); setTieneAlergias(false); setMostrarFactura(false); setFacturaOk(false); setFactura({ rfc: '', razon: '', cp: '', regimen: '', usocfdi: '', correo: '' }); ir('hero'); }}>Hacer otro pedido</button>
               </div>
             </div>
           </div>

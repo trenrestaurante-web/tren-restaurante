@@ -11,7 +11,7 @@ const STRIPE_ON = Boolean(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req: Request) {
   try {
-    const { corridaId, datos, lineas } = await req.json();
+    const { corridaId, datos, lineas, pasajeros, alergias } = await req.json();
 
     if (!datos?.nombre?.trim() || !datos?.asiento?.trim())
       return NextResponse.json({ error: 'Faltan datos del pasajero.' }, { status: 400 });
@@ -54,6 +54,7 @@ export async function POST(req: Request) {
         const { data: ord } = await sb.from('orders').insert({
           corrida_id: corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
           telefono: datos.telefono, email: datos.email, total, estatus_pago: 'pendiente',
+          pasajeros: pasajeros || null, alergias: alergias || null,
         }).select('id').single();
         orderId = ord?.id ?? null;
         if (orderId) await sb.from('order_items').insert(items.map(i => ({ ...i, order_id: orderId })));
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
       const { data: ord } = await sb.from('orders').insert({
         corrida_id: corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
         telefono: datos.telefono, email: datos.email, total, estatus_pago: 'pagado',
+        pasajeros: pasajeros || null, alergias: alergias || null,
       }).select('id').single();
       if (ord?.id) await sb.from('order_items').insert(items.map(i => ({ ...i, order_id: ord.id })));
     }
@@ -98,7 +100,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       comprobante: {
         folio, nombre: datos.nombre, asiento: (datos.asiento || '').toUpperCase(),
-        corridaCorta, sentido: corrida.sentido, items, total,
+        corridaCorta, sentido: corrida.sentido, items, total, pasajeros: pasajeros || null, alergias: alergias || null,
       },
     });
   } catch (e: any) {

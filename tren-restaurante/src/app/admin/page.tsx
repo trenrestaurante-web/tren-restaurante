@@ -74,11 +74,23 @@ export default function Admin() {
     // Hoja 1: resumen de producción
     const h1 = [['Grupo', 'Platillo', 'Cantidad'], ...resumen.map(r => [r.grupo, r.nombre, r.cantidad])];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(h1), 'Producción');
-    // Hoja 2: lista de entrega por asiento
-    const h2: any[] = [['Asiento', 'Pasajero', 'Folio', 'Platillos']];
+
+    // Hoja 2: entrega — UNA FILA POR PASAJERO
+    const nombreVagon = (v: string) => v ? `Vagón ${v}` : '';
+    const h2: any[] = [['Reserva (folio)', 'Pasajero', 'Asiento', 'Vagón', 'Alimentos', 'Leche', 'Alergias', 'Facturación']];
     for (const o of ordenes) {
-      const detalle = (o.order_items || []).map((i: any) => `${i.nombre}${i.incluido ? '' : ' ×' + i.cantidad}`).join(', ');
-      h2.push([o.asiento, o.nombre_pasajero, o.folio, detalle]);
+      // leche detectada en los nombres de items (ej. "Café Latte (Entera)")
+      const leche = (o.order_items || []).map((i: any) => { const m = /\((Entera|Deslactosada)\)/.exec(i.nombre || ''); return m ? m[1] : ''; }).filter(Boolean)[0] || '';
+      const alimentos = (o.order_items || []).map((i: any) => `${i.nombre}${i.incluido ? '' : ' ×' + i.cantidad}`).join(', ');
+      const fact = o.facturacion ? `RFC ${o.facturacion.rfc} · ${o.facturacion.razon}` : '';
+      const pax = Array.isArray(o.pasajeros) ? o.pasajeros : null;
+      if (pax && pax.length) {
+        pax.forEach((p: any, idx: number) => {
+          h2.push([o.folio, `${o.nombre_pasajero}${pax.length > 1 ? ` (P${idx + 1})` : ''}`, p.asiento || '', nombreVagon(p.vagon), idx === 0 ? alimentos : '', idx === 0 ? leche : '', idx === 0 ? (o.alergias || '') : '', idx === 0 ? fact : '']);
+        });
+      } else {
+        h2.push([o.folio, o.nombre_pasajero, o.asiento || '', '', alimentos, leche, o.alergias || '', fact]);
+      }
     }
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(h2), 'Entrega');
     const et = etiquetaCorrida(corrida).replace(/[^\w]+/g, '_');
@@ -148,6 +160,8 @@ export default function Admin() {
                         <div style={{ fontSize: 13, color: 'rgba(244,238,223,.65)', marginTop: 4 }}>
                           {(o.order_items || []).map((i: any) => `${i.nombre}${i.incluido ? '' : ' ×' + i.cantidad}`).join(' · ')}
                         </div>
+                        {o.alergias && <div style={{ fontSize: 12, color: '#E5A05A', marginTop: 4, fontFamily: 'var(--mono)' }}>⚠ Alergias: {o.alergias}</div>}
+                        {o.facturacion && <div style={{ fontSize: 11, color: 'rgba(244,238,223,.5)', marginTop: 3, fontFamily: 'var(--mono)' }}>Factura: RFC {o.facturacion.rfc}</div>}
                       </div>
                     </div>
                   ))}
