@@ -118,8 +118,8 @@ export default function Admin() {
           <div className="mc-l" style={{ flexWrap: 'wrap' }}>
             <span className="mono" style={{ color: 'var(--oro-claro)', fontSize: 12, letterSpacing: '.1em', textTransform: 'uppercase' }}>Corrida</span>
             <select value={corridaId} onChange={e => setCorridaId(e.target.value)}
-              style={{ fontFamily: 'var(--body)', fontSize: 15, padding: '10px 14px', borderRadius: 4, background: 'var(--cal)', color: 'var(--tinta)', border: 'none' }}>
-              {corridas.map(c => <option key={c.id} value={c.id}>{etiquetaCorrida(c)}</option>)}
+              style={{ fontFamily: 'var(--body)', fontSize: 15, padding: '10px 14px', borderRadius: 4, background: '#F4EEDF', color: '#221E16', border: 'none' }}>
+              {corridas.map(c => <option key={c.id} value={c.id} style={{ background: '#F4EEDF', color: '#221E16' }}>{etiquetaCorrida(c)}</option>)}
             </select>
           </div>
           <button className="mc-cambiar" onClick={exportarExcel}>Exportar a Excel</button>
