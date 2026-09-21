@@ -71,6 +71,7 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
   const [factura, setFactura] = useState({ rfc: '', razon: '', cp: '', regimen: '', usocfdi: '', correo: '' });
   const [factCargando, setFactCargando] = useState(false);
   const [fechaSel, setFechaSel] = useState<string | null>(null);
+  const [sentidoSel, setSentidoSel] = useState<'ida' | 'vuelta'>('ida');
   const [cart, setCart] = useState<Cart>({});
   const [proteinas, setProteinas] = useState<Record<string, string>>({});
   const [catSel, setCatSel] = useState<string>('');
@@ -93,7 +94,7 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
     const set = Array.from(new Set(corridas.map(c => c.fecha))).sort();
     return set;
   }, [corridas]);
-  const corridasDeFecha = useMemo(() => corridas.filter(c => c.fecha === fechaSel), [corridas, fechaSel]);
+  const corridasDeFecha = useMemo(() => corridas.filter(c => c.fecha === fechaSel && (sentidoSel === 'ida' ? c.servicio === 'manana' : c.servicio === 'tarde')), [corridas, fechaSel, sentidoSel]);
 
   function ir(v: Vista) {
     if (v === 'checkout' && nPlatillos === 0) return;
@@ -270,14 +271,33 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
               <p className="lead">Aparta y paga tu desayuno o comida para tu corrida de fin de semana. Lo preparamos para tu asiento, sin filas ni esperas a bordo.</p>
 
               <div className="ruta-hero">
-                <div className="ruta-card">
-                  <div className="rc-pt"><div className="rc-l">Origen</div><div className="rc-ciudad">Teya</div><div className="rc-sub">Mérida, Yucatán</div></div>
+                {/* Ida / Vuelta */}
+                <div className="sentido-tabs">
+                  <button className={sentidoSel === 'ida' ? 'on' : ''} onClick={() => setSentidoSel('ida')}>Ida · Teya → Chichén</button>
+                  <button className={sentidoSel === 'vuelta' ? 'on' : ''} onClick={() => setSentidoSel('vuelta')}>Vuelta · Chichén → Teya</button>
+                </div>
+                <div className="ruta-card" style={{ marginTop: 12 }}>
+                  <div className="rc-pt"><div className="rc-l">Origen</div><div className="rc-ciudad">{sentidoSel === 'ida' ? 'Teya' : 'Chichén Itzá'}</div><div className="rc-sub">{sentidoSel === 'ida' ? 'Mérida, Yucatán' : 'Yucatán'}</div></div>
                   <div className="rc-flecha">→</div>
-                  <div className="rc-pt" style={{ textAlign: 'right' }}><div className="rc-l">Destino</div><div className="rc-ciudad">Chichén Itzá</div><div className="rc-sub">Yucatán</div></div>
+                  <div className="rc-pt" style={{ textAlign: 'right' }}><div className="rc-l">Destino</div><div className="rc-ciudad">{sentidoSel === 'ida' ? 'Chichén Itzá' : 'Teya'}</div><div className="rc-sub">{sentidoSel === 'ida' ? 'Yucatán' : 'Mérida, Yucatán'}</div></div>
+                </div>
+                {/* Fecha */}
+                <div className="rc-l" style={{ margin: '18px 0 10px' }}>Elige tu fecha</div>
+                <div className="fechas-row">
+                  {fechas.map(f => {
+                    const d = new Date(f + 'T12:00');
+                    return (
+                      <div key={f} className={`fecha-chip${fechaSel === f ? ' activa' : ''}`} onClick={() => setFechaSel(f)}>
+                        <div className="dow">{DOW[d.getDay()]}</div>
+                        <div className="dia">{d.getDate()}</div>
+                        <div className="mes">{MESES[d.getMonth()]}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              <button className="btn btn-primario" onClick={() => { setFechaSel(fechas[0] ?? null); ir('grupo'); }}>Ver corridas disponibles <Flecha /></button>
+              <button className="btn btn-primario" disabled={!fechaSel} onClick={() => ir('grupo')}>{fechaSel ? 'Continuar' : 'Elige una fecha'} <Flecha /></button>
 
               <div className="hero-datos">
                 <div className="d"><div className="n">3 tiempos</div><div className="l">Desayuno</div></div>
@@ -331,7 +351,12 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
         <section className="vista activa">
           <div className="wrap seccion">
             <button className="volver" onClick={() => ir('hero')}><FlechaAtras />Volver al inicio</button>
-            <div className="sec-head"><span className="eyebrow">Paso 1 · Selección de corrida</span><h2>Corridas disponibles</h2><p>Teya → Chichén Itzá · Elige tu fecha y horario. El menú se prepara para ese viaje.</p></div>
+            <div className="sec-head"><span className="eyebrow">Paso 1 · Selección de corrida</span><h2>Corridas disponibles</h2><p>Elige tu horario. El menú se prepara para ese viaje.</p></div>
+
+            <div className="sentido-tabs" style={{ marginBottom: 14 }}>
+              <button className={sentidoSel === 'ida' ? 'on' : ''} onClick={() => setSentidoSel('ida')}>Ida · Teya → Chichén</button>
+              <button className={sentidoSel === 'vuelta' ? 'on' : ''} onClick={() => setSentidoSel('vuelta')}>Vuelta · Chichén → Teya</button>
+            </div>
 
             <div className="fechas-row">
               {fechas.map(f => {
