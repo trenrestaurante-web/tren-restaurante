@@ -9,71 +9,93 @@ const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov'
 // ¿Stripe está configurado? Si no, corremos en MODO DEMO.
 const STRIPE_ON = Boolean(process.env.STRIPE_SECRET_KEY);
 
+function armarItems(lineas: any[], menu: MenuItem[]) {
+  return lineas.map((l: any) => {
+    const m = menu.find((x: MenuItem) => x.id === l.menu_item_id);
+    if (!m) return null;
+    const cantidad = Math.max(1, Number(l.cantidad) || 1);
+    return {
+      menu_item_id: m.id, nombre: l.nombre_override || m.nombre, grupo: m.grupo, incluido: m.incluido,
+      cantidad, precio_unitario: m.precio, subtotal: m.precio * cantidad,
+    };
+  }).filter(Boolean) as any[];
+}
+
 export async function POST(req: Request) {
   try {
-    const { corridaId, datos, lineas, pasajeros, alergias } = await req.json();
+    const { corridaId, lineas, tramos, datos, pasajeros, alergias } = await req.json();
 
     if (!datos?.nombre?.trim() || !datos?.asiento?.trim())
       return NextResponse.json({ error: 'Faltan datos del pasajero.' }, { status: 400 });
-    if (!Array.isArray(lineas) || lineas.length === 0)
-      return NextResponse.json({ error: 'El carrito está vacío.' }, { status: 400 });
 
     const corridas = await getCorridas();
     const menu = await getMenu();
-    const corrida = corridas.find((c: Corrida) => c.id === corridaId);
-    if (!corrida) return NextResponse.json({ error: 'Corrida no encontrada.' }, { status: 404 });
 
-    // Construir las líneas con precios del servidor (nunca confiar en el cliente)
-    const items = lineas.map((l: any) => {
-      const m = menu.find((x: MenuItem) => x.id === l.menu_item_id);
-      if (!m) return null;
-      const cantidad = Math.max(1, Number(l.cantidad) || 1);
-      return {
-        menu_item_id: m.id, nombre: l.nombre_override || m.nombre, grupo: m.grupo, incluido: m.incluido,
-        cantidad, precio_unitario: m.precio, subtotal: m.precio * cantidad,
-      };
-    }).filter(Boolean) as any[];
+    // Normaliza a una lista de "tramos" (1 si es sencillo, 2 si es ida y vuelta)
+    const listaTramos: { corridaId: string; lineas: any[] }[] = Array.isArray(tramos) && tramos.length
+      ? tramos
+      : [{ corridaId, lineas }];
 
-    const total = items.reduce((s, i) => s + i.subtotal, 0);
-    const folio = generarFolio();
-    const d = new Date(corrida.fecha + 'T12:00');
-    const corridaCorta = `${d.getDate()} ${MESES[d.getMonth()].toUpperCase()} · ${corrida.hora_salida?.slice(0,5)}`;
+    const procesados = listaTramos.map(t => {
+      const corrida = corridas.find((c: Corrida) => c.id === t.corridaId);
+      if (!corrida) return null;
+      const items = armarItems(t.lineas || [], menu);
+      if (!items.length) return null;
+      const total = items.reduce((s, i) => s + i.subtotal, 0);
+      const d = new Date(corrida.fecha + 'T12:00');
+      const corridaCorta = `${d.getDate()} ${MESES[d.getMonth()].toUpperCase()} · ${corrida.hora_salida?.slice(0,5)}`;
+      return { corrida, items, total, corridaCorta };
+    }).filter(Boolean) as { corrida: Corrida; items: any[]; total: number; corridaCorta: string }[];
+
+    if (!procesados.length) return NextResponse.json({ error: 'El carrito está vacío o la corrida no existe.' }, { status: 400 });
+
+    const esRedondo = procesados.length > 1;
+    const folioBase = generarFolio();
+    const totalGeneral = procesados.reduce((s, p) => s + p.total, 0);
 
     // ============================================================
-    //  STRIPE (cuando esté configurado): crear sesión y redirigir.
+    //  STRIPE (cuando esté configurado): un solo cobro, N órdenes.
     // ============================================================
     if (STRIPE_ON) {
       const Stripe = (await import('stripe')).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
       const base = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
 
-      // Guardar la orden como 'pendiente' antes de mandar a pagar
       const sb = supabaseServidor();
-      let orderId: string | null = null;
+      const folios: string[] = [];
       if (sb) {
-        const { data: ord } = await sb.from('orders').insert({
-          corrida_id: corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
-          telefono: datos.telefono, email: datos.email, total, estatus_pago: 'pendiente',
-          pasajeros: pasajeros || null, alergias: alergias || null,
-        }).select('id').single();
-        orderId = ord?.id ?? null;
-        if (orderId) await sb.from('order_items').insert(items.map(i => ({ ...i, order_id: orderId })));
+        for (let i = 0; i < procesados.length; i++) {
+          const p = procesados[i];
+          const folio = esRedondo ? `${folioBase}-${i === 0 ? 'IDA' : 'VUELTA'}` : folioBase;
+          folios.push(folio);
+          const { data: ord } = await sb.from('orders').insert({
+            corrida_id: p.corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
+            telefono: datos.telefono, email: datos.email, total: p.total, estatus_pago: 'pendiente',
+            pasajeros: pasajeros || null, alergias: alergias || null,
+            viaje_redondo: esRedondo, folio_grupo: esRedondo ? folioBase : null,
+          }).select('id').single();
+          if (ord?.id) await sb.from('order_items').insert(p.items.map(it => ({ ...it, order_id: ord.id })));
+        }
       }
 
-      const session = await stripe.checkout.sessions.create({
-        mode: 'payment',
-        success_url: `${base}/confirmacion?folio=${folio}`,
-        cancel_url: `${base}/`,
-        customer_email: datos.email || undefined,
-        line_items: items.filter(i => i.subtotal > 0).map(i => ({
+      const line_items = procesados.flatMap(p =>
+        p.items.filter(i => i.subtotal > 0).map(i => ({
           quantity: i.cantidad,
           price_data: {
             currency: 'mxn',
             unit_amount: Math.round(i.precio_unitario * 100),
-            product_data: { name: `${i.grupo} · ${i.nombre}` },
+            product_data: { name: `${p.corrida.sentido} · ${i.grupo} · ${i.nombre}` },
           },
-        })),
-        metadata: { folio, orderId: orderId || '' },
+        }))
+      );
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        success_url: `${base}/confirmacion?folio=${folioBase}`,
+        cancel_url: `${base}/`,
+        customer_email: datos.email || undefined,
+        line_items,
+        metadata: { folioGrupo: folioBase, folios: folios.join(','), redondo: String(esRedondo) },
       });
       return NextResponse.json({ url: session.url });
     }
@@ -82,25 +104,38 @@ export async function POST(req: Request) {
     //  MODO DEMO (sin Stripe): se marca como pagada de una vez.
     // ============================================================
     const sb = supabaseServidor();
-    if (sb) {
-      const { data: ord } = await sb.from('orders').insert({
-        corrida_id: corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
-        telefono: datos.telefono, email: datos.email, total, estatus_pago: 'pagado',
-        pasajeros: pasajeros || null, alergias: alergias || null,
-      }).select('id').single();
-      if (ord?.id) await sb.from('order_items').insert(items.map(i => ({ ...i, order_id: ord.id })));
+    const comprobanteItems: any[] = [];
+    for (let i = 0; i < procesados.length; i++) {
+      const p = procesados[i];
+      const folio = esRedondo ? `${folioBase}-${i === 0 ? 'IDA' : 'VUELTA'}` : folioBase;
+      if (sb) {
+        const { data: ord } = await sb.from('orders').insert({
+          corrida_id: p.corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
+          telefono: datos.telefono, email: datos.email, total: p.total, estatus_pago: 'pagado',
+          pasajeros: pasajeros || null, alergias: alergias || null,
+          viaje_redondo: esRedondo, folio_grupo: esRedondo ? folioBase : null,
+        }).select('id').single();
+        if (ord?.id) await sb.from('order_items').insert(p.items.map(it => ({ ...it, order_id: ord.id })));
+      }
+      comprobanteItems.push(...p.items.map(it => ({ ...it, tramo: esRedondo ? p.corrida.sentido : undefined })));
     }
 
-    // ticket por correo (si Resend está configurado)
+    // ticket por correo (si Resend está configurado) — resumen combinado
+    const corridaTxt = esRedondo
+      ? procesados.map(p => `${p.corridaCorta} · ${p.corrida.sentido}`).join(' + ')
+      : `${procesados[0].corridaCorta} · ${procesados[0].corrida.sentido}`;
     await enviarTicketCliente({
-      folio, nombre: datos.nombre, asiento: datos.asiento, email: datos.email,
-      corrida: `${corridaCorta} · ${corrida.sentido}`, total, items,
+      folio: folioBase, nombre: datos.nombre, asiento: datos.asiento, email: datos.email,
+      corrida: corridaTxt, total: totalGeneral, items: comprobanteItems,
     });
 
     return NextResponse.json({
       comprobante: {
-        folio, nombre: datos.nombre, asiento: (datos.asiento || '').toUpperCase(),
-        corridaCorta, sentido: corrida.sentido, items, total, pasajeros: pasajeros || null, alergias: alergias || null,
+        folio: folioBase, nombre: datos.nombre, asiento: (datos.asiento || '').toUpperCase(),
+        corridaCorta: esRedondo ? 'Viaje redondo' : procesados[0].corridaCorta,
+        sentido: esRedondo ? procesados.map(p => p.corrida.sentido).join('  +  ') : procesados[0].corrida.sentido,
+        items: comprobanteItems, total: totalGeneral,
+        pasajeros: pasajeros || null, alergias: alergias || null,
       },
     });
   } catch (e: any) {

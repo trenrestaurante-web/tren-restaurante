@@ -77,7 +77,7 @@ export default function Admin() {
 
     // Hoja 2: entrega — UNA FILA POR PASAJERO
     const nombreVagon = (v: string) => v ? `Vagón ${v}` : '';
-    const h2: any[] = [['Reserva (folio)', 'Pasajero', 'Asiento', 'Vagón', 'Alimentos', 'Leche', 'Alergias', 'Facturación']];
+    const h2: any[] = [['Reserva (folio)', 'Folio grupo (ida+vuelta)', 'Pasajero', 'Asiento', 'Vagón', 'Alimentos', 'Leche', 'Alergias', 'Facturación']];
     for (const o of ordenes) {
       // leche detectada en los nombres de items (ej. "Café Latte (Entera)")
       const leche = (o.order_items || []).map((i: any) => { const m = /\((Entera|Deslactosada)\)/.exec(i.nombre || ''); return m ? m[1] : ''; }).filter(Boolean)[0] || '';
@@ -86,10 +86,10 @@ export default function Admin() {
       const pax = Array.isArray(o.pasajeros) ? o.pasajeros : null;
       if (pax && pax.length) {
         pax.forEach((p: any, idx: number) => {
-          h2.push([o.folio, `${o.nombre_pasajero}${pax.length > 1 ? ` (P${idx + 1})` : ''}`, p.asiento || '', nombreVagon(p.vagon), idx === 0 ? alimentos : '', idx === 0 ? leche : '', idx === 0 ? (o.alergias || '') : '', idx === 0 ? fact : '']);
+          h2.push([o.folio, o.folio_grupo || '', `${o.nombre_pasajero}${pax.length > 1 ? ` (P${idx + 1})` : ''}`, p.asiento || '', nombreVagon(p.vagon), idx === 0 ? alimentos : '', idx === 0 ? leche : '', idx === 0 ? (o.alergias || '') : '', idx === 0 ? fact : '']);
         });
       } else {
-        h2.push([o.folio, o.nombre_pasajero, o.asiento || '', '', alimentos, leche, o.alergias || '', fact]);
+        h2.push([o.folio, o.folio_grupo || '', o.nombre_pasajero, o.asiento || '', '', alimentos, leche, o.alergias || '', fact]);
       }
     }
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(h2), 'Entrega');
@@ -156,7 +156,7 @@ export default function Admin() {
                   ordenes.map(o => (
                     <div className="tabla-fila entrega" key={o.id}>
                       <div>
-                        <div><b className="mono" style={{ color: 'var(--oro-claro)', marginRight: 10 }}>{o.asiento}</b>{o.nombre_pasajero} <span className="mono" style={{ color: 'rgba(244,238,223,.4)', fontSize: 11, marginLeft: 6 }}>{o.folio}</span></div>
+                        <div><b className="mono" style={{ color: 'var(--oro-claro)', marginRight: 10 }}>{o.asiento}</b>{o.nombre_pasajero} <span className="mono" style={{ color: 'rgba(244,238,223,.4)', fontSize: 11, marginLeft: 6 }}>{o.folio}</span>{o.viaje_redondo && <span className="mono" style={{ color: 'var(--oro-claro)', fontSize: 10, marginLeft: 8, border: '1px solid var(--oro)', borderRadius: 999, padding: '2px 8px' }}>⇄ VIAJE REDONDO</span>}</div>
                         <div style={{ fontSize: 13, color: 'rgba(244,238,223,.65)', marginTop: 4 }}>
                           {(o.order_items || []).map((i: any) => `${i.nombre}${i.incluido ? '' : ' ×' + i.cantidad}`).join(' · ')}
                         </div>

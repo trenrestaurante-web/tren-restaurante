@@ -459,3 +459,8 @@ footer{border-top:1px solid var(--linea-2);padding:34px 0 40px;margin-top:30px}
 .sentido-tabs button{flex:1;font-family:var(--body);font-weight:600;font-size:13px;color:var(--hueso);background:transparent;border:none;border-radius:999px;padding:11px 12px;cursor:pointer;transition:.18s;white-space:nowrap}
 .sentido-tabs button.on{background:linear-gradient(135deg,var(--oro-claro),var(--oro));color:#22190E}
 @media(max-width:640px){.sentido-tabs button{font-size:11px;padding:10px 8px}}
+
+/* ===== Viaje redondo (ida y vuelta) ===== */
+.tramo-badge{background:linear-gradient(120deg,rgba(198,164,97,.14),var(--selva-2));border:1px solid rgba(198,164,97,.35);border-radius:var(--r);padding:14px 18px;margin-bottom:18px;font-family:var(--display);font-weight:600;font-size:15px;color:var(--oro-claro)}
+.tramo-mini{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--oro-claro);margin:14px 0 6px}
+.tramo-mini:first-of-type{margin-top:2px}
