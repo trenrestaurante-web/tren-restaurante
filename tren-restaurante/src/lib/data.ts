@@ -19,7 +19,7 @@ export const MENU_FALLBACK: MenuItem[] = [
   m('manana','Bebidas','Leche con Chocolate','',55,{imagen:'/menu/leche-chocolate.webp'}),
   m('manana','Menú Infantil','Hotcakes de Temayin con fruta','',125,{imagen:'/menu/hotcakes-temayin.webp'}),
   m('manana','Menú Vegano','Hotcakes de avena','',120,{vegano:true}),
-  m('manana','Menú Vegano','Avena con fruta','',145,{vegano:true}),
+  m('manana','Menú Vegano','Avena con fruta','',145,{vegano:true,imagen:'/menu/avena-fruta.webp'}),
   m('tarde','Comida','Baguette','4 tipos a elegir: Española, Italiana, Tradicional o Premium.',230,{principal:true,imagen:'/menu/baguette.webp'}),
   m('tarde','Comida','Antojitos Mexicanos','Sopes, pambazos, tostadas y tacos dorados.',145,{principal:true,imagen:'/menu/antojitos.webp'}),
   m('tarde','Comida','Ensaladas','Opción vegana.',145,{principal:true,vegano:true,imagen:'/menu/ensaladas.webp'}),

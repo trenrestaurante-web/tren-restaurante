@@ -20,3 +20,4 @@ update public.menu_items set imagen='/menu/nachos.webp'           where nombre='
 update public.menu_items set imagen='/menu/cerveza.webp'          where nombre='Cerveza Tren Maya';
 update public.menu_items set imagen='/menu/flan.webp'             where nombre='Flan';
 update public.menu_items set imagen='/menu/brownie.webp'          where nombre='Brownie con helado';
+update public.menu_items set imagen='/menu/avena-fruta.webp'      where nombre='Avena con fruta';
