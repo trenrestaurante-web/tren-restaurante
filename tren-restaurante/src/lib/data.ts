@@ -53,7 +53,8 @@ export const CORRIDAS_FALLBACK: Corrida[] = [
 export async function getCorridas(): Promise<Corrida[]> {
   const sb = supabasePublico();
   if (!sb) return CORRIDAS_FALLBACK;
-  const { data } = await sb.from('corridas').select('*').order('fecha').order('hora_salida');
+  const hoy = new Date().toISOString().slice(0, 10);
+  const { data } = await sb.from('corridas').select('*').eq('estatus', 'abierta').gte('fecha', hoy).order('fecha').order('hora_salida');
   if (!data || data.length === 0) return CORRIDAS_FALLBACK;
   return data as Corrida[];
 }
