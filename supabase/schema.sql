@@ -33,20 +33,25 @@ create table if not exists public.menu_items (
 );
 
 -- 3. ORDERS
+-- La entrega se gestiona por nombre + folio (sin asiento ni vagón).
+-- "asiento" se conserva solo como campo histórico, ya no es obligatorio.
 create table if not exists public.orders (
   id                uuid primary key default gen_random_uuid(),
   corrida_id        uuid not null references public.corridas(id),
   folio             text not null unique,
-  nombre_pasajero   text not null,
-  asiento           text not null,
+  nombre_pasajero   text not null,         -- nombre de quien recoge el pedido
+  asiento           text,                  -- histórico; ya no se captura ni se usa para entregar
   telefono          text,
   email             text,
   total             numeric(10,2) not null,
   estatus_pago      text not null default 'pendiente',   -- 'pendiente' | 'pagado'
+  entregado         boolean not null default false,      -- estado de entrega, separado del pago
+  entregado_at      timestamptz,
   stripe_session    text,
   created_at        timestamptz not null default now()
 );
 create index if not exists idx_orders_corrida on public.orders(corrida_id);
+create index if not exists idx_orders_nombre  on public.orders(lower(nombre_pasajero));
 
 -- 4. ORDER_ITEMS  (con snapshot para que el panel no dependa del menú vivo)
 create table if not exists public.order_items (
@@ -83,6 +88,11 @@ create policy "menu lectura publica" on public.menu_items
 drop policy if exists "orders lectura admin" on public.orders;
 create policy "orders lectura admin" on public.orders
   for select to authenticated using (true);
+
+-- El panel admin necesita poder marcar un pedido como entregado.
+drop policy if exists "orders admin marca entrega" on public.orders;
+create policy "orders admin marca entrega" on public.orders
+  for update to authenticated using (true) with check (true);
 
 drop policy if exists "order_items lectura admin" on public.order_items;
 create policy "order_items lectura admin" on public.order_items

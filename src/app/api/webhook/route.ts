@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         const d = new Date(c.fecha + 'T12:00');
         const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
         await enviarTicketCliente({
-          folio, nombre: ord.nombre_pasajero, asiento: ord.asiento, email: ord.email,
+          folio, nombre: ord.nombre_pasajero, email: ord.email,
           corrida: `${d.getDate()} ${meses[d.getMonth()].toUpperCase()} · ${c.sentido} · ${c.hora_salida?.slice(0,5)}`,
           total: Number(ord.total),
           items: (items || []).map((i: any) => ({ nombre: i.nombre, grupo: i.grupo, cantidad: i.cantidad, incluido: i.incluido })),

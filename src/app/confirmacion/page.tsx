@@ -40,15 +40,14 @@ export default async function Confirmacion({ searchParams }: { searchParams: Pro
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#F3EEE3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
           </div>
           <h2>Compra confirmada</h2>
-          <p className="sub">Presenta este pase (o indica tu asiento y nombre) al personal a bordo.</p>
+          <p className="sub">Al llegar al tren, proporciona el nombre registrado y muestra este pase al personal encargado.</p>
           <div className="pase">
             <div className="pase-head"><div className="pase-head-row"><span className="tit">Comprobante de compra</span><span className="logo">Tren Restaurante</span></div></div>
             <span className="greca sm" />
             <div className="pase-body">
               <div className="pase-folio"><div className="l">Folio</div><div className="c">{ord.folio}</div></div>
               <div className="pase-grid">
-                <div className="campo-p"><div className="l">Pasajero</div><div className="v">{ord.nombre_pasajero}</div></div>
-                <div className="campo-p"><div className="l">Asiento</div><div className="v mono">{ord.asiento}</div></div>
+                <div className="campo-p"><div className="l">Nombre de quien recoge</div><div className="v">{ord.nombre_pasajero}</div></div>
                 <div className="campo-p"><div className="l">Corrida</div><div className="v mono" style={{ fontSize: 15 }}>{corridaCorta}</div></div>
                 <div className="campo-p"><div className="l">Sentido</div><div className="v" style={{ fontSize: 15 }}>{c.sentido}</div></div>
               </div>
@@ -58,6 +57,7 @@ export default async function Confirmacion({ searchParams }: { searchParams: Pro
                   <div className="pi" key={i}><span className="n"><b>{it.grupo}</b>{it.nombre}</span><span className="q">{it.incluido ? 'Incluido' : '×' + it.cantidad}</span></div>
                 ))}
               </div>
+              <div style={{ marginTop: 14, fontSize: 12, color: 'rgba(244,238,223,.6)' }}>Para recibir tu comida, al llegar al tren proporciona el nombre registrado en tu pedido y muestra este ticket al personal encargado. Este ticket es tu pedido de comida; no sustituye tu boleto de viaje del Tren Maya.</div>
             </div>
           </div>
           <div className="conf-acciones"><Link href="/" className="btn btn-fantasma">Volver al inicio</Link></div>

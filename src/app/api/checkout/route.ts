@@ -23,10 +23,10 @@ function armarItems(lineas: any[], menu: MenuItem[]) {
 
 export async function POST(req: Request) {
   try {
-    const { corridaId, lineas, tramos, datos, pasajeros, alergias } = await req.json();
+    const { corridaId, lineas, tramos, datos, alergias } = await req.json();
 
-    if (!datos?.nombre?.trim() || !datos?.asiento?.trim())
-      return NextResponse.json({ error: 'Faltan datos del pasajero.' }, { status: 400 });
+    if (!datos?.nombre?.trim())
+      return NextResponse.json({ error: 'Necesitamos el nombre completo de quien recogerá el pedido.' }, { status: 400 });
 
     const corridas = await getCorridas();
     const menu = await getMenu();
@@ -69,9 +69,9 @@ export async function POST(req: Request) {
           const folio = esRedondo ? `${folioBase}-${i === 0 ? 'IDA' : 'VUELTA'}` : folioBase;
           folios.push(folio);
           const { data: ord } = await sb.from('orders').insert({
-            corrida_id: p.corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
+            corrida_id: p.corrida.id, folio, nombre_pasajero: datos.nombre,
             telefono: datos.telefono, email: datos.email, total: p.total, estatus_pago: 'pendiente',
-            pasajeros: pasajeros || null, alergias: alergias || null,
+            alergias: alergias || null,
             viaje_redondo: esRedondo, folio_grupo: esRedondo ? folioBase : null,
           }).select('id').single();
           if (ord?.id) await sb.from('order_items').insert(p.items.map(it => ({ ...it, order_id: ord.id })));
@@ -110,9 +110,9 @@ export async function POST(req: Request) {
       const folio = esRedondo ? `${folioBase}-${i === 0 ? 'IDA' : 'VUELTA'}` : folioBase;
       if (sb) {
         const { data: ord } = await sb.from('orders').insert({
-          corrida_id: p.corrida.id, folio, nombre_pasajero: datos.nombre, asiento: datos.asiento,
+          corrida_id: p.corrida.id, folio, nombre_pasajero: datos.nombre,
           telefono: datos.telefono, email: datos.email, total: p.total, estatus_pago: 'pagado',
-          pasajeros: pasajeros || null, alergias: alergias || null,
+          alergias: alergias || null,
           viaje_redondo: esRedondo, folio_grupo: esRedondo ? folioBase : null,
         }).select('id').single();
         if (ord?.id) await sb.from('order_items').insert(p.items.map(it => ({ ...it, order_id: ord.id })));
@@ -125,17 +125,17 @@ export async function POST(req: Request) {
       ? procesados.map(p => `${p.corridaCorta} · ${p.corrida.sentido}`).join(' + ')
       : `${procesados[0].corridaCorta} · ${procesados[0].corrida.sentido}`;
     await enviarTicketCliente({
-      folio: folioBase, nombre: datos.nombre, asiento: datos.asiento, email: datos.email,
+      folio: folioBase, nombre: datos.nombre, email: datos.email,
       corrida: corridaTxt, total: totalGeneral, items: comprobanteItems,
     });
 
     return NextResponse.json({
       comprobante: {
-        folio: folioBase, nombre: datos.nombre, asiento: (datos.asiento || '').toUpperCase(),
+        folio: folioBase, nombre: datos.nombre,
         corridaCorta: esRedondo ? 'Viaje redondo' : procesados[0].corridaCorta,
         sentido: esRedondo ? procesados.map(p => p.corrida.sentido).join('  +  ') : procesados[0].corrida.sentido,
         items: comprobanteItems, total: totalGeneral,
-        pasajeros: pasajeros || null, alergias: alergias || null,
+        alergias: alergias || null,
       },
     });
   } catch (e: any) {

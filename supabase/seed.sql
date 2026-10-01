@@ -39,10 +39,14 @@ insert into public.menu_items (servicio,grupo,nombre,descripcion,precio,principa
 ('tarde','Bebidas','Licores','',110,false,false,false,true,16);
 
 -- ---------- CORRIDAS (13, 20, 27 de septiembre — ida y regreso) ----------
+-- Nota: estas fechas de septiembre ya pasaron; se dejan solo como ejemplo
+-- para una instalación nueva. Las corridas reales vigentes (octubre 2026
+-- en adelante) se cargan con datos operativos confirmados — ver
+-- supabase/corridas-octubre-PLANTILLA.sql.
 insert into public.corridas (fecha,sentido,servicio,hora_salida,cierre_venta,cupo,estatus) values
-('2026-09-13','Teya → Chichén','manana','08:00','2026-09-11 20:00-06',38,'abierta'),
-('2026-09-13','Chichén → Teya','tarde','17:00','2026-09-11 20:00-06',38,'abierta'),
-('2026-09-20','Teya → Chichén','manana','08:00','2026-09-18 20:00-06',38,'abierta'),
-('2026-09-20','Chichén → Teya','tarde','17:00','2026-09-18 20:00-06',38,'abierta'),
-('2026-09-27','Teya → Chichén','manana','08:00','2026-09-25 20:00-06',null,'abierta'),
-('2026-09-27','Chichén → Teya','tarde','17:00','2026-09-25 20:00-06',38,'abierta');
+('2026-09-13','Hacienda Teya → Chichén Itzá','manana','08:00','2026-09-11 20:00-06',38,'abierta'),
+('2026-09-13','Chichén Itzá → Hacienda Teya','tarde','17:00','2026-09-11 20:00-06',38,'abierta'),
+('2026-09-20','Hacienda Teya → Chichén Itzá','manana','08:00','2026-09-18 20:00-06',38,'abierta'),
+('2026-09-20','Chichén Itzá → Hacienda Teya','tarde','17:00','2026-09-18 20:00-06',38,'abierta'),
+('2026-09-27','Hacienda Teya → Chichén Itzá','manana','08:00','2026-09-25 20:00-06',null,'abierta'),
+('2026-09-27','Chichén Itzá → Hacienda Teya','tarde','17:00','2026-09-25 20:00-06',38,'abierta');

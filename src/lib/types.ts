@@ -30,8 +30,27 @@ export interface MenuItem {
 
 export interface CartLine { menu_item_id: string; cantidad: number; }
 
-export interface DatosPasajero {
-  nombre: string; asiento: string; telefono?: string; email?: string;
+export interface DatosEntrega {
+  nombre: string; telefono?: string; email?: string;
+}
+
+export interface Order {
+  id: string;
+  corrida_id: string;
+  folio: string;
+  folio_grupo?: string | null;
+  nombre_pasajero: string;
+  asiento?: string | null;     // histórico; pedidos nuevos ya no lo usan
+  telefono?: string | null;
+  email?: string | null;
+  total: number;
+  estatus_pago: 'pendiente' | 'pagado';
+  entregado: boolean;
+  entregado_at?: string | null;
+  viaje_redondo?: boolean;
+  alergias?: string | null;
+  facturacion?: any;
+  created_at?: string;
 }
 
 export function corridaAbierta(c: Corrida): boolean {

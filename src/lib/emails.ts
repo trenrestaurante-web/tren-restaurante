@@ -9,9 +9,8 @@ interface ItemTicket { nombre: string; grupo: string; cantidad: number; incluido
 interface DatosTicket {
   folio: string;
   nombre: string;
-  asiento: string;
   email?: string | null;
-  corrida: string;   // "13 SEP · Teya → Chichén · 08:00"
+  corrida: string;   // "13 OCT · Hacienda Teya → Chichén Itzá · 08:00"
   total: number;
   items: ItemTicket[];
 }
@@ -40,12 +39,11 @@ export async function enviarTicketCliente(d: DatosTicket) {
           <div style="font-size:11px;letter-spacing:2px;color:#6B6252">FOLIO</div>
           <div style="font-size:30px;font-weight:bold;letter-spacing:3px;color:#0E3A31">${d.folio}</div>
         </div>
-        <p style="margin:4px 0;color:#221E16"><b>Pasajero:</b> ${d.nombre}</p>
-        <p style="margin:4px 0;color:#221E16"><b>Asiento:</b> ${d.asiento}</p>
+        <p style="margin:4px 0;color:#221E16"><b>Nombre de quien recoge:</b> ${d.nombre}</p>
         <p style="margin:4px 0 16px;color:#221E16"><b>Corrida:</b> ${d.corrida}</p>
         <table style="width:100%;border-top:2px dashed #E7DDC6;border-collapse:collapse">${filas}</table>
         <p style="text-align:right;margin-top:16px;font-size:18px;color:#0E3A31"><b>Total pagado: $${d.total.toLocaleString('es-MX')} MXN</b></p>
-        <p style="font-size:12px;color:#6B6252;margin-top:16px">Presenta este comprobante (o indica tu asiento y nombre) al personal a bordo.</p>
+        <p style="font-size:12px;color:#6B6252;margin-top:16px">Para recibir tu comida, al llegar al tren proporciona el nombre registrado en tu pedido y muestra este comprobante al personal encargado. Este comprobante corresponde a tu pedido de comida; no sustituye tu boleto de viaje del Tren Maya.</p>
       </div>
     </div>`,
   });
