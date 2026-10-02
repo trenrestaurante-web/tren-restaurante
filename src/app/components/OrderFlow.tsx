@@ -435,6 +435,22 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
                     </div>
                   );
                 }
+                                // Bebidas: solo aviso informativo — no se preventan ni se cobran aquí,
+                // se piden y se pagan directo con el personal a bordo del tren.
+                if (g.nombre === 'Bebidas') {
+                  return (
+                    <div key={g.nombre}>
+                      {catSel === CAT_TODO && (<div className="grupo-titulo"><h3>{g.nombre}</h3><span className="barra" /></div>)}
+                      <div className="acomp-aviso">
+                        <div className="aa-ic"><IcCat g="Bebidas" /></div>
+                        <div>
+                          <div className="aa-t">Las bebidas se piden a bordo del tren</div>
+                          <div className="aa-d">Disponibles en el tren (café, jugos, refrescos y bebidas con alcohol): {items.map(m => m.nombre).join(' · ')}. No forman parte de este pedido ni tienen costo aquí; se piden y se pagan directo con el personal durante el viaje.</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div key={g.nombre}>
                     {catSel === CAT_TODO && (
