@@ -60,17 +60,21 @@ export function corridaAbierta(c: Corrida): boolean {
 }
 
 // Las bebidas (cafés, jugos, refrescos, alcohol) no se preventan: se piden
-// y se pagan directo a bordo del tren, por eso no hay grupo "Bebidas" aquí.
+// y se pagan directo a bordo del tren. Sí aparecen en el menú (para que el
+// pasajero sepa que existen) pero solo como aviso informativo, sin precio
+// ni botón de agregar — ver el caso especial de "Bebidas" en OrderFlow.tsx.
 export const GRUPOS: Record<Servicio, { nombre: string; hint: string }[]> = {
   manana: [
     { nombre: 'Desayuno', hint: 'Elige tu plato principal — solo uno, en la cantidad que quieras' },
     { nombre: 'Acompañamientos', hint: '' },
     { nombre: 'Menú Infantil', hint: '' },
     { nombre: 'Menú Vegano', hint: '' },
+    { nombre: 'Bebidas', hint: '' },
   ],
   tarde: [
     { nombre: 'Comida', hint: 'Elige tu plato principal — solo uno, en la cantidad que quieras' },
     { nombre: 'Botanas', hint: '' },
     { nombre: 'Postres', hint: '' },
+    { nombre: 'Bebidas', hint: '' },
   ],
 };
