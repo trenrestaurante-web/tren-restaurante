@@ -25,6 +25,18 @@ export const MENU_FALLBACK: MenuItem[] = [
   m('tarde','Postres','Flan','',95,{imagen:'/menu/flan.webp'}),
   m('tarde','Postres','Galleta con helado','',110),
   m('tarde','Postres','Brownie con helado','',110,{imagen:'/menu/brownie.webp'}),
+  // Bebidas: solo informativas — no se preventan, se piden y pagan a bordo.
+  m('manana','Bebidas','Café o jugo','',0),
+  m('manana','Bebidas','Café Latte','',0),
+  m('manana','Bebidas','Café Frío','',0),
+  m('manana','Bebidas','Capuchino','',0),
+  m('manana','Bebidas','Jugo de Naranja','',0),
+  m('manana','Bebidas','Leche con Chocolate','',0),
+  m('tarde','Bebidas','Agua de chaya','',0),
+  m('tarde','Bebidas','Refresco','',0),
+  m('tarde','Bebidas','Cerveza Tren Maya','',0,{alcohol:true}),
+  m('tarde','Bebidas','Vinos','',0,{alcohol:true}),
+  m('tarde','Bebidas','Licores','',0,{alcohol:true}),
 ];
 
 // NOTA: estas corridas de respaldo (septiembre 2026) solo se muestran si
