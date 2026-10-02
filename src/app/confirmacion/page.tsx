@@ -7,14 +7,18 @@ export const dynamic = 'force-dynamic';
 export default async function Confirmacion({ searchParams }: { searchParams: Promise<{ folio?: string }> }) {
   const { folio } = await searchParams;
   const sb = supabaseServidor();
-  let ord: any = null, items: any[] = [];
+  let ords: any[] = [];
   if (sb && folio) {
-    const r = await sb.from('orders').select('*, corridas(sentido, fecha, hora_salida)').eq('folio', folio).single();
-    ord = r.data;
-    if (ord) { const ri = await sb.from('order_items').select('*').eq('order_id', ord.id); items = ri.data || []; }
+    // El folio de la URL puede ser el de un pedido sencillo, o el folio
+    // de grupo que une ida+vuelta en un viaje redondo (ahí hay 2 pedidos).
+    const r = await sb.from('orders')
+      .select('*, corridas(sentido, fecha, hora_salida), order_items(*)')
+      .or(`folio.eq.${folio},folio_grupo.eq.${folio}`)
+      .order('created_at', { ascending: true });
+    ords = r.data || [];
   }
 
-  if (!ord) {
+  if (ords.length === 0) {
     return (
       <>
         <div className="franja" /><span className="greca" />
@@ -27,9 +31,8 @@ export default async function Confirmacion({ searchParams }: { searchParams: Pro
     );
   }
 
-  const c = ord.corridas;
-  const d = new Date(c.fecha + 'T12:00');
-  const corridaCorta = `${d.getDate()} ${MESES[d.getMonth()].toUpperCase()} · ${c.hora_salida?.slice(0,5)}`;
+  const primero = ords[0];
+  const total = ords.reduce((s, o) => s + Number(o.total || 0), 0);
 
   return (
     <>
@@ -45,18 +48,48 @@ export default async function Confirmacion({ searchParams }: { searchParams: Pro
             <div className="pase-head"><div className="pase-head-row"><span className="tit">Comprobante de compra</span><span className="logo">Tren Restaurante</span></div></div>
             <span className="greca sm" />
             <div className="pase-body">
-              <div className="pase-folio"><div className="l">Folio</div><div className="c">{ord.folio}</div></div>
+              <div className="pase-folio"><div className="l">Folio</div><div className="c">{folio}</div></div>
               <div className="pase-grid">
-                <div className="campo-p"><div className="l">Nombre de quien recoge</div><div className="v">{ord.nombre_pasajero}</div></div>
-                <div className="campo-p"><div className="l">Corrida</div><div className="v mono" style={{ fontSize: 15 }}>{corridaCorta}</div></div>
-                <div className="campo-p"><div className="l">Sentido</div><div className="v" style={{ fontSize: 15 }}>{c.sentido}</div></div>
+                <div className="campo-p"><div className="l">Nombre de quien recoge</div><div className="v">{primero.nombre_pasajero}</div></div>
+                {ords.length === 1 ? (
+                  <>
+                    <div className="campo-p"><div className="l">Corrida</div><div className="v mono" style={{ fontSize: 15 }}>
+                      {(() => { const c = primero.corridas; const d = new Date(c.fecha + 'T12:00'); return `${d.getDate()} ${MESES[d.getMonth()].toUpperCase()} · ${c.hora_salida?.slice(0,5)}`; })()}
+                    </div></div>
+                    <div className="campo-p"><div className="l">Sentido</div><div className="v" style={{ fontSize: 15 }}>{primero.corridas.sentido}</div></div>
+                  </>
+                ) : (
+                  <div className="campo-p"><div className="l">Viaje</div><div className="v" style={{ fontSize: 15 }}>Redondo (ida y vuelta)</div></div>
+                )}
               </div>
-              <div className="pase-perf" />
-              <div className="pase-items">
-                {items.map((it, i) => (
-                  <div className="pi" key={i}><span className="n"><b>{it.grupo}</b>{it.nombre}</span><span className="q">{it.incluido ? 'Incluido' : '×' + it.cantidad}</span></div>
-                ))}
-              </div>
+
+              {ords.map((ord, oi) => {
+                const c = ord.corridas;
+                const d = new Date(c.fecha + 'T12:00');
+                const corridaCorta = `${d.getDate()} ${MESES[d.getMonth()].toUpperCase()} · ${c.hora_salida?.slice(0,5)}`;
+                const items = ord.order_items || [];
+                return (
+                  <div key={ord.id}>
+                    <div className="pase-perf" />
+                    {ords.length > 1 && (
+                      <div className="campo-p" style={{ marginBottom: 6 }}>
+                        <div className="l">{oi === 0 ? 'Tramo · Ida' : 'Tramo · Vuelta'}</div>
+                        <div className="v mono" style={{ fontSize: 14 }}>{corridaCorta} · {c.sentido}</div>
+                      </div>
+                    )}
+                    <div className="pase-items">
+                      {items.map((it: any, i: number) => (
+                        <div className="pi" key={i}><span className="n"><b>{it.grupo}</b>{it.nombre}</span><span className="q">{it.incluido ? 'Incluido' : '×' + it.cantidad}</span></div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {ords.length > 1 && (
+                <div className="pase-folio" style={{ marginTop: 10 }}><div className="l">Total</div><div className="c" style={{ fontSize: 16 }}>${total.toLocaleString('es-MX')} MXN</div></div>
+              )}
+
               <div style={{ marginTop: 14, fontSize: 12, color: 'rgba(244,238,223,.6)' }}>Para recibir tu comida, al llegar al tren proporciona el nombre registrado en tu pedido y muestra este ticket al personal encargado. Este ticket es tu pedido de comida; no sustituye tu boleto de viaje del Tren Maya.</div>
             </div>
           </div>
