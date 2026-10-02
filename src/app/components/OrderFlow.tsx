@@ -14,10 +14,6 @@ const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 // Opciones/variantes por platillo (no toca la BD; se guarda en el nombre).
 const OPCIONES: Record<string, { label: string; items: string[]; ingredientes?: Record<string, string> }> = {
   'Chilaquiles': { label: 'Proteína', items: ['Pollo', 'Sin proteína'] },
-  'Café Latte': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
-  'Café Frío': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
-  'Capuchino': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
-  'Leche con Chocolate': { label: 'Tipo de leche', items: ['Entera', 'Deslactosada'] },
   'Baguette': {
     label: 'Escoge tu baguette',
     items: ['Española', 'Italiana', 'Tradicional', 'Premium'],
@@ -105,7 +101,8 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
       setCartIda(cart); setProteinasIda(proteinas); setCorridaIdaId(corridaId);
       setCart({}); setProteinas({}); setCorridaId(null);
       setEtapaTramo('vuelta');
-      setFechaSel(fechas[0] ?? null);
+      // La vuelta es el mismo día que la ida (corridas de mañana/tarde
+      // emparejadas por fecha) — no se vuelve a pedir la fecha.
       ir('corridas');
       return;
     }
@@ -356,18 +353,13 @@ export default function OrderFlow({ corridas, menu }: { corridas: Corrida[]; men
               </div>
             )}
 
-            <div className="fechas-row">
-              {fechas.map(f => {
-                const d = new Date(f + 'T12:00');
-                return (
-                  <div key={f} className={`fecha-chip${fechaSel === f ? ' activa' : ''}`} onClick={() => setFechaSel(f)}>
-                    <div className="dow">{DOW[d.getDay()]}</div>
-                    <div className="dia">{d.getDate()}</div>
-                    <div className="mes">{MESES[d.getMonth()]}</div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* La fecha ya se eligió en la pantalla de inicio — no se vuelve a pedir aquí. */}
+            {fechaSel && (
+              <div className="rc-l" style={{ margin: '4px 0 14px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span>Fecha: <b style={{ color: 'var(--hueso)' }}>{DOW[new Date(fechaSel + 'T12:00').getDay()]} {new Date(fechaSel + 'T12:00').getDate()} {MESES[new Date(fechaSel + 'T12:00').getMonth()]}</b></span>
+                <button className="btn btn-fantasma" style={{ padding: '6px 14px', fontSize: 12 }} onClick={() => ir('hero')}>Cambiar fecha</button>
+              </div>
+            )}
 
             <div className="horarios">
               {corridasDeFecha.map(c => {

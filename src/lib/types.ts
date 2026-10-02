@@ -59,11 +59,12 @@ export function corridaAbierta(c: Corrida): boolean {
   return new Date(c.cierre_venta).getTime() > Date.now();
 }
 
+// Las bebidas (cafés, jugos, refrescos, alcohol) no se preventan: se piden
+// y se pagan directo a bordo del tren, por eso no hay grupo "Bebidas" aquí.
 export const GRUPOS: Record<Servicio, { nombre: string; hint: string }[]> = {
   manana: [
     { nombre: 'Desayuno', hint: 'Elige tu plato principal — solo uno, en la cantidad que quieras' },
     { nombre: 'Acompañamientos', hint: '' },
-    { nombre: 'Bebidas', hint: '' },
     { nombre: 'Menú Infantil', hint: '' },
     { nombre: 'Menú Vegano', hint: '' },
   ],
@@ -71,6 +72,5 @@ export const GRUPOS: Record<Servicio, { nombre: string; hint: string }[]> = {
     { nombre: 'Comida', hint: 'Elige tu plato principal — solo uno, en la cantidad que quieras' },
     { nombre: 'Botanas', hint: '' },
     { nombre: 'Postres', hint: '' },
-    { nombre: 'Bebidas', hint: 'La venta de bebidas alcohólicas está sujeta a verificación de edad a bordo.' },
   ],
 };

@@ -10,13 +10,7 @@ export const MENU_FALLBACK: MenuItem[] = [
   m('manana','Desayuno','Vaporcito','Con salsa de tomate.',160,{principal:true,vegano:true}),
   m('manana','Desayuno','Omelette','De jamón y queso, acompañado con frijoles.',155,{principal:true,imagen:'/menu/omelette.webp'}),
   m('manana','Acompañamientos','Fruta','',0,{incluido:true}),
-  m('manana','Acompañamientos','Café o jugo','',0,{incluido:true}),
   m('manana','Acompañamientos','Variedad de pan dulce','',0,{incluido:true}),
-  m('manana','Bebidas','Café Latte','',75),
-  m('manana','Bebidas','Café Frío','',110),
-  m('manana','Bebidas','Capuchino','',75),
-  m('manana','Bebidas','Jugo de Naranja','',65),
-  m('manana','Bebidas','Leche con Chocolate','',55,{imagen:'/menu/leche-chocolate.webp'}),
   m('manana','Menú Infantil','Hotcakes de Temayin con fruta','',125,{imagen:'/menu/hotcakes-temayin.webp'}),
   m('manana','Menú Vegano','Hotcakes de avena','',120,{vegano:true}),
   m('manana','Menú Vegano','Avena con fruta','',145,{vegano:true}),
@@ -31,11 +25,6 @@ export const MENU_FALLBACK: MenuItem[] = [
   m('tarde','Postres','Flan','',95,{imagen:'/menu/flan.webp'}),
   m('tarde','Postres','Galleta con helado','',110),
   m('tarde','Postres','Brownie con helado','',110,{imagen:'/menu/brownie.webp'}),
-  m('tarde','Bebidas','Agua de chaya','',65),
-  m('tarde','Bebidas','Refresco','',45),
-  m('tarde','Bebidas','Cerveza Tren Maya','',89,{alcohol:true,imagen:'/menu/cerveza.webp'}),
-  m('tarde','Bebidas','Vinos','',110,{alcohol:true}),
-  m('tarde','Bebidas','Licores','',110,{alcohol:true}),
 ];
 
 // NOTA: estas corridas de respaldo (septiembre 2026) solo se muestran si
